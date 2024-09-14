@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Rename resource &apos;tcddriver2&apos; to &apos;TCDFunctionTest&apos;" description="Rename resource &apos;tcddriver2&apos;" flags="7" id="org.eclipse.ltk.core.refactoring.rename.resource" input="/tcddriver2" name="TCDFunctionTest" stamp="1726340804467" updateReferences="true"/>
+</session>
