@@ -1,0 +1,18 @@
+14:25:11 **** Incremental Build of configuration Debug for project STMValidationSoftware ****
+make -j16 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F401xC -c -I../Core/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32F4xx/Include -I../Drivers/CMSIS/Include -I../USB_DEVICE/App -I../USB_DEVICE/Target -I../Middlewares/ST/STM32_USB_Device_Library/Core/Inc -I../Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
+../Core/Src/main.c: In function 'main':
+../Core/Src/main.c:166:3: warning: implicit declaration of function 'CDC_Transmit_FS' [-Wimplicit-function-declaration]
+  166 |   CDC_Transmit_FS("Target Ready\r\n",14);
+      |   ^~~~~~~~~~~~~~~
+../Core/Src/main.c: In function 'CDCReceiveCallback':
+../Core/Src/main.c:573:35: error: 'TestBuffer' undeclared (first use in this function); did you mean 'TestBuffer3'?
+  573 |         CDC_Transmit_FS((uint8_t*)TestBuffer, 600);
+      |                                   ^~~~~~~~~~
+      |                                   TestBuffer3
+../Core/Src/main.c:573:35: note: each undeclared identifier is reported only once for each function it appears in
+make: *** [Core/Src/subdir.mk:34: Core/Src/main.o] Error 1
+"make -j16 all" terminated with exit code 2. Build might be incomplete.
+
+14:25:12 Build Failed. 2 errors, 1 warnings. (took 1s.40ms)
+

@@ -1,25 +1,10 @@
-00:31:58 **** Incremental Build of configuration Debug for project tcddriver2 ****
+14:25:14 **** Build of configuration Debug for project tcddriver2 ****
 make -j16 all 
-arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m4 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F401xC -c -I../Core/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc -I../Drivers/STM32F4xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32F4xx/Include -I../Drivers/CMSIS/Include -I../USB_DEVICE/App -I../USB_DEVICE/Target -I../Middlewares/ST/STM32_USB_Device_Library/Core/Inc -I../Middlewares/ST/STM32_USB_Device_Library/Class/CDC/Inc -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -o "Core/Src/main.o"
-../Core/Src/main.c: In function 'main':
-../Core/Src/main.c:157:3: warning: implicit declaration of function 'CDC_Transmit_FS' [-Wimplicit-function-declaration]
-  157 |   CDC_Transmit_FS("Target Ready\r\n",14);
-      |   ^~~~~~~~~~~~~~~
-../Core/Src/main.c: At top level:
-../Core/Src/main.c:551:19: warning: unsigned conversion from 'int' to 'uint8_t' {aka 'unsigned char'} changes value from '31223' to '247' [-Woverflow]
-  551 | uint8_t signals = 31223;
-      |                   ^~~~~
-arm-none-eabi-gcc -o "tcddriver2.elf" @"objects.list"   -mcpu=cortex-m4 -T"C:\Users\Faizan Tabassum\Documents\CheckAg-TCDTesting\tcddriver2\STM32F401CCUX_FLASH.ld" --specs=nosys.specs -Wl,-Map="tcddriver2.map" -Wl,--gc-sections -static --specs=nano.specs -mfpu=fpv4-sp-d16 -mfloat-abi=hard -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
-Finished building target: tcddriver2.elf
- 
 arm-none-eabi-size  tcddriver2.elf 
-arm-none-eabi-objdump -h -S tcddriver2.elf  > "tcddriver2.list"
    text	   data	    bss	    dec	    hex	filename
-  40948	    376	  19688	  61012	   ee54	tcddriver2.elf
+  45604	    388	  19692	  65684	  10094	tcddriver2.elf
 Finished building: default.size.stdout
  
-Finished building: tcddriver2.list
- 
 
-00:31:58 Build Finished. 0 errors, 2 warnings. (took 857ms)
+14:25:14 Build Finished. 0 errors, 0 warnings. (took 293ms)
 

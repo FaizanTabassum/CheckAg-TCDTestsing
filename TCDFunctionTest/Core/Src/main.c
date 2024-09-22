@@ -35,7 +35,8 @@
 /* USER CODE BEGIN PD */
 #define HEADER_SIZE 200//this is just a big enough number, to accomodate all the elements, will have to calculate the exact value later
 #define FOOTER_SIZE 2 //this is not really needed but just added it for uniformity
-#define CCD_PIXEL_BUFFER_SIZE (6000) // Adjust as needed for header, data, and footer
+#define CCD_PIXEL_BUFFER_SIZE (4000) // Adjust as needed for header, data, and footer
+#define TEST_BUFFER
 
 /* USER CODE END PD */
 
@@ -72,12 +73,16 @@ char header[HEADER_SIZE];
 char footer[FOOTER_SIZE];
 
 
-volatile uint16_t CCDPixelBuffer[CCD_PIXEL_BUFFER_SIZE];
+volatile uint16_t CCDPixelBuffer1[CCD_PIXEL_BUFFER_SIZE];
+volatile uint16_t CCDPixelBuffer2[CCD_PIXEL_BUFFER_SIZE];
+volatile uint16_t CCDPixelSendBuffer[CCD_PIXEL_BUFFER_SIZE];
 volatile uint16_t headertest[200];
 //this is the variable to initiate the dma
 volatile uint8_t start_command_received = 0;
 volatile uint8_t continuous_enabled = 0;
 int experiment = 1;
+uint8_t bufferFlag = 1;
+uint8_t sendBufferFlag = USBD_OK;
 
 /* USER CODE END PV */
 
@@ -99,6 +104,7 @@ void Configure_SH_Signal(uint32_t period, uint32_t pulse);
 void Configure_ICG_Signal(uint32_t period, uint32_t pulse);
 void Configure_MasterClock_Signal(uint32_t period, uint32_t pulse);
 void CalculateAndSetIntegrationTime(uint32_t integration_time_us);
+uint8_t CDC_Transmit_FS(uint8_t* Buf, uint16_t Len);
 
 /* USER CODE END PFP */
 
@@ -154,7 +160,7 @@ int main(void)
 //  HAL_TIM_PWM_Start(&htim5, TIM_CHANNEL_3); //SH
 
   if (!start_command_received) {
-  CDC_Transmit_FS("Target Ready\r\n",14);
+  CDC_Transmit_FS((uint8_t*)"Target Ready\r\n",14);
   HAL_Delay(1000);}
 
 //  HAL_TIM_Base_Start_IT(&htim3);
@@ -550,8 +556,20 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
-	HAL_ADC_Stop_DMA(&hadc1);
-	CDC_Transmit_FS((uint8_t*) CCDPixelBuffer, CCD_PIXEL_BUFFER_SIZE);
+	switch(bufferFlag){
+	case 1:
+
+		HAL_ADC_Stop_DMA(&hadc1);
+		memcpy((void*)CCDPixelSendBuffer, (void*)CCDPixelBuffer1, CCD_PIXEL_BUFFER_SIZE);
+		CDC_Transmit_FS((uint8_t*) CCDPixelSendBuffer, CCD_PIXEL_BUFFER_SIZE);
+		bufferFlag = 2;
+	case 2:
+
+		HAL_ADC_Stop_DMA(&hadc1);
+		memcpy((void*)CCDPixelSendBuffer, (void*)CCDPixelBuffer2, CCD_PIXEL_BUFFER_SIZE);
+		CDC_Transmit_FS((uint8_t*) CCDPixelSendBuffer, CCD_PIXEL_BUFFER_SIZE);
+		bufferFlag = 1;}
+
 }
 
 uint8_t signals = 2;
@@ -566,7 +584,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 				  HAL_TIM_PWM_Stop(&htim5, TIM_CHANNEL_3); //SH
 				  count = 0;
 			}
-		}
+//		}
+}
 
 
 
@@ -578,14 +597,22 @@ void CDCReceiveCallback(uint8_t* Buf, uint32_t Len) {
     Buf[Len] = '\0';
 
     // Check for the "start" command
-    if (strncmp((char*)Buf, "start", 5) == 0) {
+    if ((strncmp((char*)Buf, "start", 5) == 0)) {
+    	  __HAL_TIM_SET_COUNTER(&htim5, 0);
+    	  __HAL_TIM_SET_COUNTER(&htim3, 0);
+    	  __HAL_TIM_SET_COUNTER(&htim2, 66);
     	  HAL_TIM_PWM_Start(&htim5, TIM_CHANNEL_3); //SH
     	  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1); //fM
     	  HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_4); //ADC
-    	  HAL_ADC_Start_DMA(&hadc1, (uint32_t*) CCDPixelBuffer, CCD_PIXEL_BUFFER_SIZE);
     	  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1); //ICG
-    	  __HAL_TIM_SET_COUNTER(&htim2, 66);// 600ns delay
     	  HAL_TIM_Base_Start_IT(&htim2);
+    	  if(bufferFlag == 1){
+    		  HAL_ADC_Start_DMA(&hadc1, (uint32_t*) CCDPixelBuffer1, CCD_PIXEL_BUFFER_SIZE);
+    	  }
+    	  else{
+    		  HAL_ADC_Start_DMA(&hadc1, (uint32_t*) CCDPixelBuffer2, CCD_PIXEL_BUFFER_SIZE);
+    	  }
+
 //    } else if(strncmp((char*)Buf, "STOP", 5) == 0) {
 //        start_command_received = 0; // Set the flag
 //        continuous_enabled = 0;
@@ -664,14 +691,14 @@ void InitializeHeaderFooter(void) {
 }
 
 // Function to shift data and add header and footer
-void encodeData(uint16_t* data_buffer, uint32_t data_size) {
-
-	// Copy the header to the start of the buffer
-	    memcpy((void*)CCDPixelBuffer, (const void*)header, HEADER_SIZE);
-
-	    // Copy the footer to the end of the data
-	    memcpy((void*)&CCDPixelBuffer[CCD_PIXEL_BUFFER_SIZE - FOOTER_SIZE], (const void*)footer, FOOTER_SIZE);
-}
+//void encodeData(uint16_t* data_buffer, uint32_t data_size) {
+//
+//	// Copy the header to the start of the buffer
+//	    memcpy((void*)CCDPixelBuffer1, (const void*)header, HEADER_SIZE);
+//
+//	    // Copy the footer to the end of the data
+//	    memcpy((void*)&CCDPixelBuffer[CCD_PIXEL_BUFFER_SIZE - FOOTER_SIZE], (const void*)footer, FOOTER_SIZE);
+//}
 
 void Configure_SH_Signal(uint32_t period, uint32_t pulse) {
 	HAL_TIM_PWM_Stop(&htim5, TIM_CHANNEL_3);
