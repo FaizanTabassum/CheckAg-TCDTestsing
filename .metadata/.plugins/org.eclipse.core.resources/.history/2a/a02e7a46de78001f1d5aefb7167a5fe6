@@ -172,13 +172,11 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  single_capture_flag = 1;
   while (1)
   {
-
 	  SingleCapture();
-
-
+	  HAL_Delay(1000);
+	  single_capture_flag = 1;
 
     /* USER CODE END WHILE */
 
@@ -330,9 +328,9 @@ static void MX_TIM2_Init(void)
   {
     Error_Handler();
   }
-  sConfigOC.OCMode = TIM_OCMODE_PWM2;
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
   sConfigOC.Pulse = 8820-1;
-  sConfigOC.OCPolarity = TIM_OCPOLARITY_LOW;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
   {
@@ -578,7 +576,6 @@ void SingleCapture(){
 	}
 	  if(timer_flag == 1){
 		  count_signals++;
-		  timer_flag = 0;
 	  }
 	  if(count_signals >= signals){
 		  HAL_TIM_PWM_Stop(&htim2, TIM_CHANNEL_1); //ICG

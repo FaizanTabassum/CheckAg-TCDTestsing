@@ -79,14 +79,6 @@ volatile uint8_t start_command_received = 0;
 volatile uint8_t continuous_enabled = 0;
 int experiment = 1;
 
-uint8_t signals = 4;
-uint8_t count_signals = 0;
-
-//flags
-uint8_t adc_flag = 0;
-uint8_t timer_flag = 0;
-uint8_t single_capture_flag = 0;
-
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -99,7 +91,6 @@ static void MX_TIM4_Init(void);
 static void MX_TIM5_Init(void);
 static void MX_ADC1_Init(void);
 /* USER CODE BEGIN PFP */
-void SingleCapture();
 void encodeData(uint16_t* data_buffer, uint32_t data_size);
 void InitializeHeaderFooter();
 void CDCReceiveCallback(uint8_t* Buf, uint32_t Len);
@@ -172,14 +163,8 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  single_capture_flag = 1;
   while (1)
   {
-
-	  SingleCapture();
-
-
-
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -330,9 +315,9 @@ static void MX_TIM2_Init(void)
   {
     Error_Handler();
   }
-  sConfigOC.OCMode = TIM_OCMODE_PWM2;
+  sConfigOC.OCMode = TIM_OCMODE_PWM1;
   sConfigOC.Pulse = 8820-1;
-  sConfigOC.OCPolarity = TIM_OCPOLARITY_LOW;
+  sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
   sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
   if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_1) != HAL_OK)
   {
@@ -563,47 +548,23 @@ static void MX_GPIO_Init(void)
 }
 
 /* USER CODE BEGIN 4 */
-void SingleCapture(){
-	if(single_capture_flag == 1){
-	  __HAL_TIM_SET_COUNTER(&htim2, 66);// 600ns delay for icg
-	  __HAL_TIM_SET_COUNTER(&htim5, 0); // sh
-	  __HAL_TIM_SET_COUNTER(&htim3, 0); // fm
-	  HAL_TIM_PWM_Start(&htim5, TIM_CHANNEL_3); //SH
-	  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1); //fM
-	  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1); //ICG
-	  HAL_TIM_Base_Start_IT(&htim2);
-	  HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_4); //ADC
-	  HAL_ADC_Start_DMA(&hadc1, (uint32_t*) CCDPixelBuffer, CCD_PIXEL_BUFFER_SIZE);
-	  single_capture_flag = 0;
-	}
-	  if(timer_flag == 1){
-		  count_signals++;
-		  timer_flag = 0;
-	  }
-	  if(count_signals >= signals){
-		  HAL_TIM_PWM_Stop(&htim2, TIM_CHANNEL_1); //ICG
-		  HAL_TIM_PWM_Stop(&htim3, TIM_CHANNEL_1); //fM
-		  HAL_TIM_PWM_Stop(&htim4, TIM_CHANNEL_4); //ADC
-		  HAL_TIM_PWM_Stop(&htim5, TIM_CHANNEL_3); //SH
-		  count_signals = 0;
-
-	  }
-
-
-
-
-}
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 {
-	adc_flag = 1;
-//	HAL_ADC_Stop_DMA(&hadc1);
-//	CDC_Transmit_FS((uint8_t*) CCDPixelBuffer, CCD_PIXEL_BUFFER_SIZE);
+	HAL_ADC_Stop_DMA(&hadc1);
+	CDC_Transmit_FS((uint8_t*) CCDPixelBuffer, CCD_PIXEL_BUFFER_SIZE);
 }
 
-
+uint8_t signals = 2;
+uint8_t count = 0;
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
-		if (htim->Instance == TIM2) {
-			timer_flag = 1;
+//		if (htim->Instance == TIM2) {
+			count++;
+			if(count >= signals){
+				  HAL_TIM_PWM_Stop(&htim2, TIM_CHANNEL_1); //ICG
+				  HAL_TIM_PWM_Stop(&htim3, TIM_CHANNEL_1); //fM
+				  HAL_TIM_PWM_Stop(&htim4, TIM_CHANNEL_4); //ADC
+				  HAL_TIM_PWM_Stop(&htim5, TIM_CHANNEL_3); //SH
+				  count = 0;
 			}
 		}
 
@@ -618,9 +579,61 @@ void CDCReceiveCallback(uint8_t* Buf, uint32_t Len) {
 
     // Check for the "start" command
     if (strncmp((char*)Buf, "start", 5) == 0) {
-    	single_capture_flag = 1;
-
-
+    	  HAL_TIM_PWM_Start(&htim5, TIM_CHANNEL_3); //SH
+    	  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1); //fM
+    	  HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_4); //ADC
+    	  HAL_ADC_Start_DMA(&hadc1, (uint32_t*) CCDPixelBuffer, CCD_PIXEL_BUFFER_SIZE);
+    	  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1); //ICG
+    	  __HAL_TIM_SET_COUNTER(&htim2, 66);// 600ns delay
+    	  HAL_TIM_Base_Start_IT(&htim2);
+//    } else if(strncmp((char*)Buf, "STOP", 5) == 0) {
+//        start_command_received = 0; // Set the flag
+//        continuous_enabled = 0;
+//        HAL_ADC_Stop_DMA(&hadc1);
+//    }
+//    else {
+//        // Parse the command
+//        char *command = strtok((char*)Buf, ":");
+//        char *param_str = strtok(NULL, ":");
+//
+//        if (command && param_str) {
+//            uint32_t param = atoi(param_str);
+//            if (strcmp(command, "CONT") == 0) {
+//                        	CalculateAndSetIntegrationTime(param);
+//                        	continuous_enabled = 1;
+//                        	start_command_received = 0;
+//
+//                        }
+//
+//            else if (strcmp(command, "SH") == 0) {
+//                char *pulse_str = strtok(NULL, ":");
+//                if (pulse_str) {
+//                    uint32_t pulse = atoi(pulse_str);
+//                    Configure_SH_Signal(param, pulse);
+//                }
+//            } else if (strcmp(command, "ICG") == 0) {
+//                char *pulse_str = strtok(NULL, ":");
+//                if (pulse_str) {
+//                    uint32_t pulse = atoi(pulse_str);
+//                    Configure_ICG_Signal(param, pulse);
+//                }
+//            } else if (strcmp(command, "MC") == 0) {  // Assuming MC for Master Clock
+//                char *pulse_str = strtok(NULL, ":");
+//                if (pulse_str) {
+//                    uint32_t pulse = atoi(pulse_str);
+//                    Configure_MasterClock_Signal(param, pulse);
+//                }
+//            }
+//            else if (strcmp(command, "START") == 0) {
+//                        	CalculateAndSetIntegrationTime(param);
+//                            start_command_received = 1; // Set the flag
+//                            continuous_enabled = 0;
+//
+//                        }
+//            else if (strcmp(command, "IT") == 0) {
+//                CalculateAndSetIntegrationTime(param);
+//            }
+//        }
     }
 }
 
