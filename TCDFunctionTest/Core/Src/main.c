@@ -79,7 +79,7 @@ volatile uint8_t start_command_received = 0;
 volatile uint8_t continuous_enabled = 0;
 int experiment = 1;
 
-uint8_t signals = 4;
+uint8_t signals = 7;
 uint8_t count_signals = 0;
 
 //flags
@@ -173,6 +173,7 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   single_capture_flag = 1;
+
   while (1)
   {
 
@@ -571,15 +572,12 @@ void SingleCapture(){
 	  HAL_TIM_PWM_Start(&htim5, TIM_CHANNEL_3); //SH
 	  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1); //fM
 	  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1); //ICG
-	  HAL_TIM_Base_Start_IT(&htim2);
+	  HAL_TIM_PWM_Start_IT(&htim2);
 	  HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_4); //ADC
 	  HAL_ADC_Start_DMA(&hadc1, (uint32_t*) CCDPixelBuffer, CCD_PIXEL_BUFFER_SIZE);
 	  single_capture_flag = 0;
 	}
-	  if(timer_flag == 1){
-		  count_signals++;
-		  timer_flag = 0;
-	  }
+
 	  if(count_signals >= signals){
 		  HAL_TIM_PWM_Stop(&htim2, TIM_CHANNEL_1); //ICG
 		  HAL_TIM_PWM_Stop(&htim3, TIM_CHANNEL_1); //fM
@@ -593,7 +591,7 @@ void SingleCapture(){
 
 
 }
-void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
+void HAL_TIM_PWM_PulseFinishedCallback(ADC_HandleTypeDef* hadc)
 {
 	adc_flag = 1;
 //	HAL_ADC_Stop_DMA(&hadc1);
@@ -603,7 +601,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim){
 		if (htim->Instance == TIM2) {
-			timer_flag = 1;
+			count_signals++;
 			}
 		}
 

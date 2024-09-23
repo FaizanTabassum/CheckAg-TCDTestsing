@@ -1,0 +1,10 @@
+16:02:24 **** Incremental Build of configuration Debug for project onepulsemode ****
+make -j16 all 
+arm-none-eabi-size  onepulsemode.elf 
+   text	   data	    bss	    dec	    hex	filename
+   8228	     12	   1644	   9884	   269c	onepulsemode.elf
+Finished building: default.size.stdout
+ 
+
+16:02:24 Build Finished. 0 errors, 0 warnings. (took 247ms)
+
