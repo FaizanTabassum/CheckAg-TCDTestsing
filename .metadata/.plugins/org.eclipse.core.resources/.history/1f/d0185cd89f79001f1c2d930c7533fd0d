@@ -173,7 +173,6 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   single_capture_flag = 1;
-  HAL_TIM_PWM_Start_IT(&htim2, TIM_CHANNEL_2);
 
   while (1)
   {
@@ -572,17 +571,18 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 void SingleCapture(){
-	if(timer_flag == 1){
-		count_signals++;
-		timer_flag = 0;
-	}
+//	if(timer_flag == 1){
+//		count_signals++;
+//		timer_flag = 0;
+//	}
 	if(single_capture_flag == 1){
 	  __HAL_TIM_SET_COUNTER(&htim2, 66);// 600ns delay for icg
 	  __HAL_TIM_SET_COUNTER(&htim5, 0); // sh
 	  __HAL_TIM_SET_COUNTER(&htim3, 0); // fm
-	  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1); //ICG
+	  HAL_TIM_PWM_Start_IT(&htim2, TIM_CHANNEL_1);//icg
 	  HAL_TIM_PWM_Start(&htim5, TIM_CHANNEL_3); //SH
 	  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1); //fM
+//	  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1); //ICG
 	  HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_4); //ADC
 	  HAL_ADC_Start_DMA(&hadc1, (uint32_t*) CCDPixelBuffer, CCD_PIXEL_BUFFER_SIZE);
 	  single_capture_flag = 0;
@@ -590,15 +590,12 @@ void SingleCapture(){
 
 	  if(count_signals >= signals){
 		  HAL_TIM_PWM_Stop(&htim2, TIM_CHANNEL_1); //ICG
+		  HAL_TIM_PWM_Stop(&htim3, TIM_CHANNEL_1); //fM
+		  HAL_TIM_PWM_Stop(&htim4, TIM_CHANNEL_4); //ADC
 		  HAL_TIM_PWM_Stop(&htim5, TIM_CHANNEL_3); //SH
+		  count_signals = 0;
 
 	  }
-	  if(count_signals >= (signals + 1)){
-	  		  HAL_TIM_PWM_Stop(&htim3, TIM_CHANNEL_1); //fM
-	  		  HAL_TIM_PWM_Stop(&htim4, TIM_CHANNEL_4); //ADC
-	  		  count_signals = 0;
-
-	  	  }
 
 
 
@@ -614,8 +611,8 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
 
 void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim){
 		if (htim->Instance == TIM2) {
-			timer_flag = 1;
-//			count_signals++;
+//			timer_flag = 1;
+			count_signals++;
 			}
 		}
 
