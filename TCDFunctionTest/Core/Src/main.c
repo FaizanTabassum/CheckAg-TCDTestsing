@@ -23,7 +23,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 #include "string.h"
-
+#include "usbd_cdc_if.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -135,7 +135,7 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-  InitializeHeaderFooter();
+
 
   /* USER CODE END Init */
 
@@ -163,7 +163,7 @@ int main(void)
 //  HAL_TIM_PWM_Start(&htim5, TIM_CHANNEL_3); //SH
 
   if (!start_command_received) {
-  CDC_Transmit_FS("Target Ready\r\n",14);
+  CDC_Transmit_FS((uint8_t *)"Target Ready\r\n",14);
   HAL_Delay(1000);}
 
 //  HAL_TIM_Base_Start_IT(&htim3);
@@ -173,14 +173,12 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   single_capture_flag = 1;
-  HAL_TIM_PWM_Start_IT(&htim2, TIM_CHANNEL_2);
+
+
 
   while (1)
   {
-
 	  SingleCapture();
-
-
 
     /* USER CODE END WHILE */
 
@@ -580,6 +578,7 @@ void SingleCapture(){
 	  __HAL_TIM_SET_COUNTER(&htim2, 66);// 600ns delay for icg
 	  __HAL_TIM_SET_COUNTER(&htim5, 0); // sh
 	  __HAL_TIM_SET_COUNTER(&htim3, 0); // fm
+	  HAL_TIM_PWM_Start_IT(&htim2, TIM_CHANNEL_2);
 	  HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1); //ICG
 	  HAL_TIM_PWM_Start(&htim5, TIM_CHANNEL_3); //SH
 	  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1); //fM
@@ -591,31 +590,18 @@ void SingleCapture(){
 	  if(count_signals >= signals){
 		  HAL_TIM_PWM_Stop(&htim2, TIM_CHANNEL_1); //ICG
 		  HAL_TIM_PWM_Stop(&htim5, TIM_CHANNEL_3); //SH
+  		  HAL_TIM_PWM_Stop(&htim3, TIM_CHANNEL_1); //fM
+  		  HAL_TIM_PWM_Stop(&htim4, TIM_CHANNEL_4); //ADC
+  	   	  HAL_TIM_PWM_Stop_IT(&htim2, TIM_CHANNEL_2);
+  		  count_signals = 0;
 
 	  }
-	  if(count_signals >= (signals + 1)){
-	  		  HAL_TIM_PWM_Stop(&htim3, TIM_CHANNEL_1); //fM
-	  		  HAL_TIM_PWM_Stop(&htim4, TIM_CHANNEL_4); //ADC
-	  		  count_signals = 0;
-
-	  	  }
-
-
-
 
 }
-void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
-{
-	adc_flag = 1;
-//	HAL_ADC_Stop_DMA(&hadc1);
-//	CDC_Transmit_FS((uint8_t*) CCDPixelBuffer, CCD_PIXEL_BUFFER_SIZE);
-}
-
 
 void HAL_TIM_PWM_PulseFinishedCallback(TIM_HandleTypeDef *htim){
 		if (htim->Instance == TIM2) {
 			timer_flag = 1;
-//			count_signals++;
 			}
 		}
 
@@ -630,142 +616,16 @@ void CDCReceiveCallback(uint8_t* Buf, uint32_t Len) {
 
     // Check for the "start" command
     if (strncmp((char*)Buf, "start", 5) == 0) {
+    	signals = 2;
+    	count_signals = 0;
+    	adc_flag = 0;
+    	timer_flag = 0;
+    	single_capture_flag = 0;
     	single_capture_flag = 1;
 
 
     }
 }
-
-void CalculateAndSetIntegrationTime(uint32_t integration_time_us) {
-    // Calculate the SH period (T_SH) in timer ticks
-    uint32_t T_SH_ticks = (84 * integration_time_us);  // Convert microseconds to timer ticks
-
-    // Minimum SH pulse width is 1 µs, which translates to 84 timer ticks at 84 MHz
-    uint32_t SH_pulse_ticks = 84;
-
-    // Configure the SH signal with the calculated period and pulse width
-    Configure_SH_Signal(T_SH_ticks, SH_pulse_ticks);
-}
-
-
-void InitializeHeaderFooter(void) {
-    // Construct the header
-    snprintf(header, HEADER_SIZE,
-        "Version: %s\nMajor: %d\nFileFormat: %d\nCustomization: %d\nCameraType: %d\n"
-        "SizeX: %d\nSizeY: %d\nDataSet: %d\nDataByte: %d\nMeasureMode: %d\nSheetData: %d\n"
-        "Profile: %d\nScaleUnit: %s\n",
-        VersionNo, MajorVersion, FileFormatNo, CustomizationNo, CameraType,
-        DataInfo[0], DataInfo[1], DataInfo[2], DataInfo[3],
-        MeasureMode, SheetData, Profile, ScaleUnitChars);
-
-    // Construct the footer (this example just uses a simple footer, customize as needed)
-    snprintf(footer, FOOTER_SIZE, "\n");
-}
-
-// Function to shift data and add header and footer
-void encodeData(uint16_t* data_buffer, uint32_t data_size) {
-
-	// Copy the header to the start of the buffer
-	    memcpy((void*)CCDPixelBuffer, (const void*)header, HEADER_SIZE);
-
-	    // Copy the footer to the end of the data
-	    memcpy((void*)&CCDPixelBuffer[CCD_PIXEL_BUFFER_SIZE - FOOTER_SIZE], (const void*)footer, FOOTER_SIZE);
-}
-
-void Configure_SH_Signal(uint32_t period, uint32_t pulse) {
-	HAL_TIM_PWM_Stop(&htim5, TIM_CHANNEL_3);
-	HAL_TIM_PWM_Stop(&htim2, TIM_CHANNEL_1);
-	HAL_TIM_PWM_Stop(&htim3, TIM_CHANNEL_1);
-    TIM_OC_InitTypeDef sConfigOC = {0};
-
-    htim5.Init.Prescaler = 1-1;
-    htim5.Init.CounterMode = TIM_COUNTERMODE_UP;
-    htim5.Init.Period = period-1;
-    htim5.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-    htim5.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-    if (HAL_TIM_PWM_Init(&htim5) != HAL_OK) {
-        // Initialization Error
-        Error_Handler();
-    }
-
-    sConfigOC.OCMode = TIM_OCMODE_PWM1;
-    sConfigOC.Pulse = pulse;
-    sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-    sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-    if (HAL_TIM_PWM_ConfigChannel(&htim5, &sConfigOC, TIM_CHANNEL_3) != HAL_OK) {
-        // Configuration Error
-        Error_Handler();
-    }
-
-    HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1); //ICG
-    __HAL_TIM_SET_COUNTER(&htim2, 66);// 600ns delay
-    HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1); //fM
-    HAL_TIM_PWM_Start(&htim5, TIM_CHANNEL_3); //SH
-}
-
-void Configure_ICG_Signal(uint32_t period, uint32_t pulse) {
-	HAL_TIM_PWM_Stop(&htim5, TIM_CHANNEL_3);
-	HAL_TIM_PWM_Stop(&htim2, TIM_CHANNEL_1);
-	HAL_TIM_PWM_Stop(&htim3, TIM_CHANNEL_1);
-    TIM_OC_InitTypeDef sConfigOC = {0};
-
-    htim2.Init.Prescaler = 1-1;
-    htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-    htim2.Init.Period = period-1;
-    htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-    htim2.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-    if (HAL_TIM_PWM_Init(&htim2) != HAL_OK) {
-        // Initialization Error
-        Error_Handler();
-    }
-
-    sConfigOC.OCMode = TIM_OCMODE_PWM1;
-    sConfigOC.Pulse = pulse;
-    sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-    sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-    if (HAL_TIM_PWM_ConfigChannel(&htim2, &sConfigOC, TIM_CHANNEL_1) != HAL_OK) {
-        // Configuration Error
-        Error_Handler();
-    }
-
-    HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1); //ICG
-    __HAL_TIM_SET_COUNTER(&htim2, 66);// 600ns delay
-    HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1); //fM
-    HAL_TIM_PWM_Start(&htim5, TIM_CHANNEL_3); //SH
-}
-
-void Configure_MasterClock_Signal(uint32_t period, uint32_t pulse) {
-	HAL_TIM_PWM_Stop(&htim5, TIM_CHANNEL_3);
-	HAL_TIM_PWM_Stop(&htim2, TIM_CHANNEL_1);
-	HAL_TIM_PWM_Stop(&htim3, TIM_CHANNEL_1);
-    TIM_OC_InitTypeDef sConfigOC = {0};
-
-    htim3.Init.Prescaler = 1-1;
-    htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
-    htim3.Init.Period = period-1;
-    htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
-    htim3.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-    if (HAL_TIM_PWM_Init(&htim3) != HAL_OK) {
-        // Initialization Error
-        Error_Handler();
-    }
-
-    sConfigOC.OCMode = TIM_OCMODE_PWM1;
-    sConfigOC.Pulse = pulse;
-    sConfigOC.OCPolarity = TIM_OCPOLARITY_HIGH;
-    sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
-    if (HAL_TIM_PWM_ConfigChannel(&htim3, &sConfigOC, TIM_CHANNEL_1) != HAL_OK) {
-        // Configuration Error
-        Error_Handler();
-    }
-
-    HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1); //ICG
-    __HAL_TIM_SET_COUNTER(&htim2, 66);// 600ns delay
-    HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1); //fM
-    HAL_TIM_PWM_Start(&htim5, TIM_CHANNEL_3); //SH
-}
-
-
 /* USER CODE END 4 */
 
 /**
