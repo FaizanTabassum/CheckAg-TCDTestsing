@@ -1,10 +1,10 @@
-15:50:28 **** Incremental Build of configuration Debug for project TCDFunctionTest ****
+15:56:08 **** Incremental Build of configuration Debug for project TCDFunctionTest ****
 make -j16 all 
 arm-none-eabi-size  TCDFunctionTest.elf 
    text	   data	    bss	    dec	    hex	filename
-  39064	    256	  19128	  58448	   e450	TCDFunctionTest.elf
+  39484	    256	  19128	  58868	   e5f4	TCDFunctionTest.elf
 Finished building: default.size.stdout
  
 
-15:50:29 Build Finished. 0 errors, 0 warnings. (took 303ms)
+15:56:09 Build Finished. 0 errors, 0 warnings. (took 300ms)
 

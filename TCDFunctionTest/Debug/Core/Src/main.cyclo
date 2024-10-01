@@ -8,6 +8,6 @@
 ../Core/Src/main.c:540:13:MX_DMA_Init	1
 ../Core/Src/main.c:558:13:MX_GPIO_Init	1
 ../Core/Src/main.c:572:6:SingleCapture	4
-../Core/Src/main.c:602:6:HAL_TIM_PWM_PulseFinishedCallback	2
-../Core/Src/main.c:613:6:CDCReceiveCallback	2
-../Core/Src/main.c:635:6:Error_Handler	1
+../Core/Src/main.c:604:6:HAL_TIM_PWM_PulseFinishedCallback	2
+../Core/Src/main.c:615:6:CDCReceiveCallback	2
+../Core/Src/main.c:637:6:Error_Handler	1

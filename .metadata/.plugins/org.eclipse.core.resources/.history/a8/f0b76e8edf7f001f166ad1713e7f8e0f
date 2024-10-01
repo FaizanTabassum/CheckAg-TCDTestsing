@@ -593,7 +593,7 @@ void SingleCapture(){
   		  HAL_TIM_PWM_Stop(&htim3, TIM_CHANNEL_1); //fM
   		  HAL_TIM_PWM_Stop(&htim4, TIM_CHANNEL_4); //ADC
   	   	  HAL_TIM_PWM_Stop_IT(&htim2, TIM_CHANNEL_2);
-  	      HAL_ADC_Stop_DMA(&hadc1);
+  	      HAL_ADC_Stop_DMA(&hadc1, (uint32_t*) CCDPixelBuffer, CCD_PIXEL_BUFFER_SIZE);
   	      CDC_Transmit_FS((uint8_t*) CCDPixelBuffer, CCD_PIXEL_BUFFER_SIZE);
   		  count_signals = 0;
 
