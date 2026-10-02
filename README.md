@@ -2,6 +2,12 @@
 
 Experimental firmware for testing TCD CCD timing and signal capture with STM32. The repository contains separate STM32CubeIDE projects exploring timer-generated CCD control signals, ADC acquisition with DMA and USB CDC communication.
 
+## Hardware testing video
+
+[Watch the TCD testing video — STM32 DMA for TCD1103 spectrometer development](https://www.youtube.com/shorts/44_s2APVDDs)
+
+[![TCD testing video](https://img.youtube.com/vi/44_s2APVDDs/hqdefault.jpg)](https://www.youtube.com/shorts/44_s2APVDDs)
+
 ## Start here
 
 | Project | Purpose |
